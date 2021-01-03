@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "920520702463",
+    "project_id": "e-bank-online",
+    "storage_bucket": "e-bank-online.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:920520702463:android:621b35c301a48cb877cfca",
+        "android_client_info": {
+          "package_name": "com.verynice.ebank"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "920520702463-gra6mpabdqq8stgbh2lopp3jnuinq0tu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.verynice.ebank",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "920520702463-0tdl09hhvqc0c9b4hq1j3lvi37qo608j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASL9y5QtNFjaR79-_2Npxe_7gqhpRzp5o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "920520702463-0tdl09hhvqc0c9b4hq1j3lvi37qo608j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,5 +1,7 @@
 import auth from '@react-native-firebase/auth';
-import database from '@react-native-firebase/database';
+import firebase from 'firebase';
+import config from './config';
 
+firebase.initializeApp(config());
 export const _auth = auth();
-export const _database = database();
+export const _database = firebase.database();

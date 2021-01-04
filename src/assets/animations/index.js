@@ -8,7 +8,7 @@ export const fadeIn = {
 };
 export const slideInUp = {
   0: {
-    translateY: 100,
+    translateY: 1000,
   },
   1: {
     translateY: 0,
@@ -99,6 +99,13 @@ export const slideInRight = {
     translateX: 500,
   },
   1: {translateX: 0},
+};
+export const slideFadeInRight = {
+  0: {
+    translateX: 500,
+    opacity: 0,
+  },
+  1: {translateX: 0, opacity: 1},
 };
 export const slideInLeft = {
   0: {

@@ -34,7 +34,7 @@ export default class SplashScreen extends Component {
       <Animatable.View
         animation={this.state.close === false ? fadeIn : slideOutLeft}
         style={style.mainContent}>
-        <StatusBar barStyle="light-content" />
+        <StatusBar barStyle="light-content" backgroundColor="#fff" />
         <Image
           source={require('../../assets/drawables/logo.png')}
           style={style.logo}

@@ -101,7 +101,7 @@ const style = StyleSheet.create({
     marginLeft: 10,
   },
   loginBtn: {
-    backgroundColor: '#18b92e',
+    backgroundColor: '#118fca',
     elevation: 2,
     borderRadius: 50,
     flex: 1,

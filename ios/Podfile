@@ -8,6 +8,8 @@ target 'verynice_ebank' do
 
   use_react_native!(:path => config["reactNativePath"])
 
+  pod 'react-native-fingerprint-scanner', :path => '../node_modules/react-native-fingerprint-scanner'
+
   target 'verynice_ebankTests' do
     inherit! :complete
     # Pods for testing

@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import {
   BackHandler,
   Image,
+  ScrollView,
   StatusBar,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import * as Animatable from 'react-native-animatable';
 import {PulseIndicator} from 'react-native-indicators';
 import {fadeIn, slideInLeft, slideInRight} from '../../assets/animations';
 import {_auth, _database} from '../../assets/config';
+import FingerAuth from './biometrics/biometrics';
 
 const style = StyleSheet.create({
   mainContent: {
@@ -148,8 +150,11 @@ export default class Home extends Component {
     await _database
       .ref('users')
       .child(_auth.currentUser.uid)
-      .on('value', (snapshot) => {
+      .on('value', async (snapshot) => {
         this.setState({loading: false});
+        if (snapshot.hasChild('accountBalance') === false) {
+          await snapshot.child('accountBalance').ref.set(0);
+        }
         if (snapshot.hasChild('info')) {
           this.setState({
             userInfo: snapshot.child('info').val(),
@@ -169,42 +174,44 @@ export default class Home extends Component {
             <PulseIndicator color={'#118fca'} style={style.loader} size={100} />
             <Text style={style.loaderText}>Please Hold...</Text>
           </View>
-        ) : this.state.init === true || this.state.editInfo === true ? (
-          <GettingStarted
-            openSnack={this.props.openSnack}
-            closeSnack={this.props.closeSnack}
-            openTimedSnack={this.props.openTimedSnack}
-            biometricAuth={() => {
-              this.setState({
-                fingerAuth: true,
-                init: false,
-                editInfo: undefined,
-              });
-            }}
-            goHome={() => {
-              this.setState({
-                init: false,
-                editInfo: undefined,
-              });
-            }}
-            userInfo={this.state.userInfo}
-          />
         ) : this.state.fingerAuth ? (
           this.state.fingerAuth === 'authenticated' ? (
-            <AppHome
-              unauthorizeUser={this.props.unauthorizeUser}
-              openInfo={async () => {
-                this.setState({
-                  editInfo: true,
-                });
-              }}
-              accountBalance={
-                this.state.accountBalance ? this.state.accountBalance : 0
-              }
-              openSnack={this.props.openSnack}
-              closeSnack={this.props.closeSnack}
-              openTimedSnack={this.props.openTimedSnack}
-            />
+            this.state.init === true || this.state.editInfo === true ? (
+              <GettingStarted
+                openSnack={this.props.openSnack}
+                closeSnack={this.props.closeSnack}
+                openTimedSnack={this.props.openTimedSnack}
+                biometricAuth={() => {
+                  this.setState({
+                    fingerAuth: true,
+                    init: false,
+                    editInfo: undefined,
+                  });
+                }}
+                goHome={() => {
+                  this.setState({
+                    init: false,
+                    editInfo: undefined,
+                  });
+                }}
+                userInfo={this.state.userInfo}
+              />
+            ) : (
+              <AppHome
+                unauthorizeUser={this.props.unauthorizeUser}
+                openInfo={async () => {
+                  this.setState({
+                    editInfo: true,
+                  });
+                }}
+                accountBalance={
+                  this.state.accountBalance ? this.state.accountBalance : 0
+                }
+                openSnack={this.props.openSnack}
+                closeSnack={this.props.closeSnack}
+                openTimedSnack={this.props.openTimedSnack}
+              />
+            )
           ) : (
             <FingerAuth
               goHome={() => {
@@ -338,42 +345,15 @@ class GettingStarted extends Component {
                 .ref('users')
                 .child(this.state.uId + '/info')
                 .set(p);
+              await _database
+                .ref('accounts/' + _auth.currentUser.phoneNumber)
+                .set(_auth.currentUser.uid);
               this.props.biometricAuth();
               this.props.openTimedSnack('Save Succeful!');
             }, 100);
           }}>
           <Text style={style.btnText}>Save Info</Text>
         </TouchableOpacity>
-      </Animatable.View>
-    );
-  }
-}
-class FingerAuth extends Component {
-  async componentDidMount() {
-    this.backHandler = BackHandler.addEventListener(
-      'hardwareBackPress',
-      (x) => {
-        BackHandler.exitApp();
-        return true;
-      },
-    );
-    await setTimeout(() => {
-      this.props.goHome();
-    }, 3000);
-  }
-  componentWillUnmount() {
-    this.backHandler.remove();
-  }
-  render() {
-    return (
-      <Animatable.View animation={fadeIn} style={style.mainContent}>
-        <Image
-          source={require('../../assets/drawables/fingerprint.png')}
-          style={style.fingerPrint}
-        />
-        <Text style={style.startedTitle}>
-          Place you fingerprint for authentication
-        </Text>
       </Animatable.View>
     );
   }
@@ -414,7 +394,13 @@ class AppHome extends Component {
         }}>
         <Text style={style.btnText}>Withdraw</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={style.btn}>
+      <TouchableOpacity
+        style={style.btn}
+        onPress={async () => {
+          await setTimeout(async () => {
+            this.setState({currentScreen: 'send'});
+          }, 100);
+        }}>
         <Text style={style.btnText}>Send Money</Text>
       </TouchableOpacity>
       <TouchableOpacity style={style.btn}>
@@ -454,7 +440,9 @@ class AppHome extends Component {
     </Animatable.View>
   );
   render() {
-    return (
+    return this.state.currentScreen === 'myTransactions' ? (
+      <MyTransactions />
+    ) : (
       <Animatable.View animation={slideInRight} style={style.mainContent}>
         <Image
           source={require('../../assets/drawables/logo.png')}
@@ -464,6 +452,16 @@ class AppHome extends Component {
           this.menu
         ) : this.state.currentScreen === 'withdraw' ? (
           <Withdraw
+            goHome={() => {
+              this.setState({currentScreen: 'menu'});
+            }}
+            accountBalance={this.props.accountBalance}
+            openSnack={this.props.openSnack}
+            closeSnack={this.props.closeSnack}
+            openTimedSnack={this.props.openTimedSnack}
+          />
+        ) : this.state.currentScreen === 'send' ? (
+          <SendMoney
             goHome={() => {
               this.setState({currentScreen: 'menu'});
             }}
@@ -485,28 +483,34 @@ function numberWithCommas(x) {
 class Withdraw extends Component {
   state = {
     amount: undefined,
-    cash: undefined,
+    Cash: undefined,
   };
   componentDidMount() {
-    BackHandler.addEventListener('hardwareBackPress', (x) => {
-      if (this.state.amount) {
-        this.setState({amount: undefined});
-      } else if (this.state.cash) {
-        this.setState({cash: undefined});
-      } else {
-        this.props.goHome();
-      }
-      return true;
-    });
+    this.backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      (x) => {
+        if (this.state.amount) {
+          this.setState({amount: undefined});
+        } else if (this.state.Cash) {
+          this.setState({Cash: undefined});
+        } else {
+          this.props.goHome();
+        }
+        return true;
+      },
+    );
+  }
+  componentWillUnmount() {
+    this.backHandler.remove;
   }
   render() {
     return (
       <Animatable.View animation={slideInRight}>
         <Text style={style.startedTitle}>Withdrawal</Text>
-        {this.state.amount && this.state.cash ? (
+        {this.state.amount && this.state.Cash ? (
           <Animatable.View animation={fadeIn}>
             <Text style={style.notificationText}>
-              Confrim {this.state.cash} withdrawl of $
+              Confrim {this.state.Cash} withdrawl of $
               {numberWithCommas(this.state.amount)}.00
             </Text>
             <TouchableOpacity
@@ -520,19 +524,25 @@ class Withdraw extends Component {
                       .once('value', async (x) => {
                         const reciept = {
                           transactionId: await (await x.ref.push()).key,
-                          transactionType: this.state.cash,
+                          transactionType: this.state.Cash + 'Withdrawal',
                           transactionAmount: this.state.amount,
                           transactionDate: getDate(),
                           transactionTime: getTime(),
                         };
+                        if (this.state.Cash === 'Token') {
+                          const tokenCode = generateUID();
+                          reciept.tokenCode = tokenCode;
+                          _database
+                            .ref('tokens')
+                            .child(tokenCode)
+                            .set(reciept.transactionAmount);
+                        }
                         const b =
                           this.props.accountBalance - reciept.transactionAmount;
                         x.child('transactions')
                           .ref.child(reciept.transactionId)
                           .set(reciept, (t) => {
                             x.child('accountBalance').ref.set(b);
-                            this.props.goHome();
-                            this.props.openTimedSnack('Withdrawal Succesfull');
                           });
                       });
                   } else {
@@ -552,7 +562,7 @@ class Withdraw extends Component {
               <Text style={style.btnText}>Cancel</Text>
             </TouchableOpacity>
           </Animatable.View>
-        ) : this.state.cash ? (
+        ) : this.state.Cash ? (
           <Animatable.View animation={slideInRight}>
             <View style={style.inputField}>
               <Text style={style.inputFieldText}>Amount</Text>
@@ -573,7 +583,7 @@ class Withdraw extends Component {
                 }, 100);
               }}>
               <Text style={style.btnText}>
-                {this.state.cash === 'token'
+                {this.state.Cash === 'Token'
                   ? 'Generate Token'
                   : 'Withdraw Cash'}
               </Text>
@@ -585,7 +595,7 @@ class Withdraw extends Component {
               style={style.btn}
               onPress={async () => {
                 await setTimeout(() => {
-                  this.setState({cash: 'token'});
+                  this.setState({Cash: 'Token'});
                 }, 100);
               }}>
               <Text style={style.btnText}>Using Token</Text>
@@ -594,7 +604,7 @@ class Withdraw extends Component {
               style={style.btn}
               onPress={async () => {
                 await setTimeout(() => {
-                  this.setState({cash: 'cash', _amount: undefined});
+                  this.setState({Cash: 'Cash', _amount: undefined});
                 }, 100);
               }}>
               <Text style={style.btnText}>Withdraw Cash</Text>
@@ -606,45 +616,290 @@ class Withdraw extends Component {
   }
 }
 class SendMoney extends Component {
+  state = {accountNumber: '', amount: '', confirm: false};
   async componentDidMount() {
-    BackHandler.addEventListener('hardwareBackPress', (x) => {
-      if (this.state.amount) {
-        this.setState({amount: undefined});
-      } else if (this.state.cash) {
-        this.setState({cash: undefined});
-      } else {
-        this.props.goHome();
-      }
-      return true;
-    });
+    this.backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      (x) => {
+        if (this.state.confirm === true) {
+          this.setState({confirm: false});
+        } else {
+          this.props.goHome();
+        }
+        return true;
+      },
+    );
+  }
+  componentWillUnmount() {
+    this.backHandler.remove;
   }
   render() {
     return (
-      <Animatable.View animation={slideInLeft}>
+      <Animatable.View animation={slideInRight}>
         <Text style={style.startedTitle}>Send Money</Text>
-        <View style={style.inputField}>
-          <Text style={style.inputFieldText}>Amount</Text>
-          <TextInput
-            style={style.input}
-            placeholder="100"
-            onChangeText={(x) => {
-              this.setState({_amount: x});
-            }}
-            value={this.state._amount}
-          />
-        </View>
-        <TouchableOpacity
-          style={style.btn}
-          onPress={async () => {
-            await setTimeout(() => {
-              this.setState({amount: parseInt(this.state._amount)});
-            }, 100);
-          }}>
-          <Text style={style.btnText}>
-            {this.state.cash === 'token' ? 'Generate Token' : 'Withdraw Cash'}
-          </Text>
-        </TouchableOpacity>
+        <ScrollView>
+          {this.state.confirm === false ? (
+            <Animatable.View>
+              <View style={style.inputField}>
+                <Text style={style.inputFieldText}>Account Number</Text>
+                <TextInput
+                  style={style.input}
+                  placeholder="+1 650-555-3434"
+                  onChangeText={(x) => {
+                    this.setState({accountNumber: x});
+                  }}
+                  value={this.state.accountNumber}
+                />
+              </View>
+              <View style={style.inputField}>
+                <Text style={style.inputFieldText}>Amount</Text>
+                <TextInput
+                  style={style.input}
+                  placeholder="100"
+                  onChangeText={(x) => {
+                    this.setState({amount: x});
+                  }}
+                  value={this.state.amount}
+                />
+              </View>
+              <TouchableOpacity
+                style={style.btn}
+                onPress={async () => {
+                  setTimeout(async () => {
+                    if (this.state.amount && this.state.accountNumber) {
+                      this.setState({confirm: true});
+                    } else {
+                      this.props.openTimedSnack('All fields are required');
+                    }
+                  }, 100);
+                }}>
+                <Text style={style.btnText}>Send</Text>
+              </TouchableOpacity>
+            </Animatable.View>
+          ) : (
+            <Animatable.View animation={fadeIn}>
+              <Text style={style.notificationText}>
+                Confrim $ {numberWithCommas(this.state.amount)}.00 sent to{' '}
+                {this.state.accountNumber}
+              </Text>
+              <TouchableOpacity
+                style={style.btn}
+                onPress={async () => {
+                  setTimeout(async () => {
+                    if (this.state.amount && this.state.accountNumber) {
+                      if (this.props.accountBalance >= this.state.amount) {
+                        await _database
+                          .ref('accounts/' + this.state.accountNumber)
+                          .once('value', async (data) => {
+                            if (data.val()) {
+                              await _database
+                                .ref('users/' + data.val())
+                                .once('value', async (z) => {
+                                  const r = {
+                                    transactionId: await z.ref.push().key,
+                                    receievedAmount: this.state.amount,
+                                    senderPhoneNumber:
+                                      _auth.currentUser.phoneNumber,
+                                    transactionDate: getDate(),
+                                    transactionTime: getTime(),
+                                    transactionType: 'Recieved Money',
+                                  };
+                                  z.ref
+                                    .child('transactions/' + r.transactionId)
+                                    .set(r, (_) => {
+                                      const b = z.child('accountBalance');
+                                      b.ref.set(
+                                        parseInt(b.val()) +
+                                          parseInt(this.state.amount),
+                                      );
+                                    });
+                                });
+                              await _database
+                                .ref('users/' + _auth.currentUser.uid)
+                                .once('value', async (z) => {
+                                  const r = {
+                                    transactionId: await z.ref.push().key,
+                                    sentAmount: this.state.amount,
+                                    recipientPhoneNumber: data.key,
+                                    transactionDate: getDate(),
+                                    transactionTime: getTime(),
+                                    transactionType: 'Sent Money',
+                                  };
+                                  z.ref
+                                    .child('transactions/' + r.transactionId)
+                                    .set(r, (_) => {
+                                      const b = z.child('accountBalance');
+                                      b.ref.set(
+                                        parseInt(b.val()) -
+                                          parseInt(this.state.amount),
+                                      );
+                                    });
+                                });
+                              this.props.goHome();
+                              this.props.openTimedSnack('Sent Succesfull');
+                            } else {
+                              this.props.openTimedSnack('Recipient not found');
+                            }
+                          });
+                      } else {
+                        this.props.openTimedSnack('Insufficient Funds');
+                      }
+                    } else {
+                      this.props.openTimedSnack('All fields are required');
+                    }
+                  }, 100);
+                }}>
+                <Text style={style.btnText}>Proceed</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={style.btn}
+                onPress={async () => {
+                  setTimeout(async () => {
+                    this.setState({confirm: false});
+                  }, 100);
+                }}>
+                <Text style={style.btnText}>Cancel</Text>
+              </TouchableOpacity>
+            </Animatable.View>
+          )}
+        </ScrollView>
       </Animatable.View>
     );
   }
 }
+function generateUID() {
+  return (
+    ('0000' + (Math.random() * 46656).toString(36)).slice(-3) +
+    '-' +
+    ('0000' + (Math.random() * 46656).toString(36)).slice(-3) +
+    '-' +
+    ('0000' + (Math.random() * 46656).toString(36)).slice(-3) +
+    '-'('0000' + (Math.random() * 46656).toString(36)).slice(-3)
+  );
+}
+class MyTransactions extends Component() {
+  state = {
+    myTransactions: [],
+    loading: true,
+  };
+  async componentDidMount() {
+    this.backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      (x) => {
+        if (this.state.confirm === true) {
+          this.setState({confirm: false});
+        } else {
+          this.props.goHome();
+        }
+        return true;
+      },
+    );
+    await _database
+      .ref('users')
+      .child(_auth.currentUser.uid + '/transactions')
+      .on('value', (x) => {
+        const z = [];
+        x.forEach((i) => {
+          z.push(i.val());
+        });
+        this.setState({myTransactions: z, loading: false});
+      });
+  }
+  componentWillUnmount() {
+    this.backHandler.remove;
+  }
+  render() {
+    return (
+      <Animatable.View animation={slideInRight} style={style.mainContent}>
+        <Text style={style.startedTitle}>My Transactions</Text>
+        {this.state.loading === true ? (
+          <View style={style.mainContent}>
+            <PulseIndicator color={'#118fca'} style={style.loader} size={100} />
+            <Text style={style.loaderText}>Please Hold...</Text>
+          </View>
+        ) : (
+          <ScrollView>
+            {this.state.myTransactions.map((x, i) => {
+              return x.transactionType === 'Recieved Money'
+                ? this.transactionCard(
+                    ts.receieved,
+                    '#' +
+                      x.transactionId +
+                      ' confirmed that you recieved a total of $ ' +
+                      numberWithCommas(x.transactionAmount) +
+                      '.00 from ' +
+                      x.senderPhoneNumber,
+                    x,
+                  )
+                : x.transactionType === 'Sent Money'
+                ? this.transactionCard(
+                    ts.sent,
+                    '#' +
+                      x.transactionId +
+                      ' confirmed that you sent a total of $ ' +
+                      numberWithCommas(x.transactionAmount) +
+                      '.00 to ' +
+                      x.recipientPhoneNumber,
+                    x,
+                  )
+                : x.transactionType === 'Token Withdrawal'
+                ? this.transactionCard(
+                    ts.token,
+                    '#' +
+                      '#' +
+                      x.transactionId +
+                      ' confirmed token withdrawal, a total of $ ' +
+                      numberWithCommas(x.transactionAmount) +
+                      '.00 . Your withdrawal token is ' +
+                      x.tokenCode,
+                    x,
+                    x,
+                  )
+                : x.transactionType === 'Cash Withdrawal'
+                ? this.transactionCard(
+                    ts.cash,
+                    '#' +
+                      x.transactionId +
+                      ' confirmed cash withdrawal, a total of $ ' +
+                      numberWithCommas(x.transactionAmount) +
+                      '.00',
+                    x,
+                  )
+                : this.transactionCard(
+                    ts.deposit,
+                    '#' +
+                      x.transactionId +
+                      ' confirmed that a total of $ ' +
+                      numberWithCommas(x.transactionAmount) +
+                      '.00 has been deposited in your account',
+                    x,
+                  );
+            })}
+          </ScrollView>
+        )}
+      </Animatable.View>
+    );
+  }
+  transactionCard(s, m, d) {
+    return (
+      <Animatable.View style={s} animation={slideInRight}>
+        <Text style={ts.text1}>Date: {d.transactionDate}</Text>
+        <Text style={ts.text1}>Time: {d.transactionTime}</Text>
+        <Text style={ts.text1}>
+          Amount: {'$ ' + numberWithCommas(d.transactionDate) + '.00'}
+        </Text>
+        <Text style={ts.text1}>Type: {d.transactionType}</Text>
+        <Text style={ts.text2}>{m}</Text>
+      </Animatable.View>
+    );
+  }
+}
+const ts = StyleSheet.create({
+  text1: {},
+  text2: {},
+  receieved: {},
+  sent: {},
+  deposit: {},
+  token: {},
+  cash: {},
+});

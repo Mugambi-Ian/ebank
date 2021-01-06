@@ -9,7 +9,6 @@
 import React, {Component} from 'react';
 import {View} from 'react-native';
 import {_auth} from './src/assets/config';
-import {Snackbar} from 'react-native-paper';
 import AuthScreen from './src/main/app-auth/auth';
 import SplashScreen from './src/main/app-splash/splash';
 import Home from './src/main/app-home/home';
@@ -30,6 +29,7 @@ export default class App extends Component {
   };
 
   async componentDidMount() {
+    console.log('adkaldkald');
     await _auth.onAuthStateChanged(async (u) => {
       if (this.state.activeSplash === false && this.state.loaded === false) {
         this.setState({activeSplash: true});
@@ -87,14 +87,14 @@ export default class App extends Component {
               this.setState({bypassAuth: true});
             }}
             unauthorizeUser={() => {
-              this.setState({authenticated: true});
+              this.setState({authenticated: false});
             }}
             openSnack={this.openSnack.bind(this)}
             closeSnack={this.closeSnack.bind(this)}
             openTimedSnack={this.openTimedSnack.bind(this)}
           />
         )}
-        <Snackbar
+        <View
           visible={this.state.snackBar}
           action={{
             label: this.state.snackBarLabel,
@@ -104,7 +104,7 @@ export default class App extends Component {
             return true;
           }}>
           {this.state.snackBarMsg}
-        </Snackbar>
+        </View>
       </View>
     );
   }

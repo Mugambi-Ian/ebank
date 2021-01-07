@@ -10,6 +10,8 @@ target 'verynice_ebank' do
 
   pod 'react-native-fingerprint-scanner', :path => '../node_modules/react-native-fingerprint-scanner'
 
+  pod 'RNCAsyncStorage', :path => '../node_modules/@react-native-async-storage/async-storage'
+
   target 'verynice_ebankTests' do
     inherit! :complete
     # Pods for testing

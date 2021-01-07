@@ -8,7 +8,7 @@ export const fadeIn = {
 };
 export const slideInUp = {
   0: {
-    translateY: 1000,
+    translateY: -1000,
   },
   1: {
     translateY: 0,
@@ -30,6 +30,14 @@ export const slideOutDown = {
   },
   1: {
     translateY: 1000,
+  },
+};
+export const slideInDown = {
+  0: {
+    translateY: 1000,
+  },
+  1: {
+    translateY: 0,
   },
 };
 export const zoomIn = {

@@ -8,6 +8,7 @@ import {
   View,
   ViewPropTypes,
   Platform,
+  BackHandler,
 } from 'react-native';
 import FingerprintScanner from 'react-native-fingerprint-scanner';
 import styles from './FingerprintPopup.component.styles';
@@ -23,29 +24,47 @@ class FingerAuth extends Component {
     this.description = null;
   }
 
-  componentDidMount() {
+  async componentDidMount() {
+    this.backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      (x) => {
+        if (this.state.confirm === true) {
+          this.setState({confirm: false});
+        } else {
+          this.props.goHome();
+        }
+        return true;
+      },
+    );
+    await FingerprintScanner.isSensorAvailable().catch(async () => {
+      this.props.openTimedSnack('Requires Biometric Authentication');
+      await setTimeout(() => {
+        BackHandler.exitApp();
+      }, 2000);
+    });
     if (this.requiresLegacyAuthentication()) {
       this.authLegacy();
     } else {
       this.authCurrent();
     }
   }
-
-  componentWillUnmount = () => {
+  componentWillUnmount() {
+    this.backHandler.remove;
     FingerprintScanner.release();
-  };
+  }
 
   requiresLegacyAuthentication() {
     return Platform.Version < 23;
   }
 
   authCurrent() {
-    FingerprintScanner.authenticate({title: 'Log in with Biometrics'}).then(
-      () => {
-        this.props.onAuthenticate();
+    FingerprintScanner.authenticate({title: 'Log in with Biometrics'})
+      .then(() => {
         this.props.goHome();
-      },
-    );
+      })
+      .catch(() => {
+        BackHandler.exitApp();
+      });
   }
 
   authLegacy() {
@@ -53,7 +72,6 @@ class FingerAuth extends Component {
       onAttempt: this.handleAuthenticationAttemptedLegacy,
     })
       .then(() => {
-        this.props.handlePopupDismissedLegacy();
         this.props.goHome();
       })
       .catch((error) => {
@@ -62,6 +80,7 @@ class FingerAuth extends Component {
           biometricLegacy: error.biometric,
         });
         this.description.shake();
+        BackHandler.exitApp();
       });
   }
 
@@ -81,7 +100,6 @@ class FingerAuth extends Component {
             style={styles.logo}
             source={require('./assets/finger_print.png')}
           />
-
           <Text style={styles.heading}>Biometric{'\n'}Authentication</Text>
           <ShakingText
             ref={(instance) => {
@@ -113,8 +131,6 @@ class FingerAuth extends Component {
 }
 
 FingerAuth.propTypes = {
-  onAuthenticate: PropTypes.func.isRequired,
-  handlePopupDismissedLegacy: PropTypes.func,
   style: ViewPropTypes.style,
 };
 

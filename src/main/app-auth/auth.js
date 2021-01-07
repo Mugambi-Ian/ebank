@@ -14,6 +14,7 @@ import {
   fadeIn,
   fadeOut,
   slideFadeInRight,
+  slideInDown,
   slideInUp,
 } from '../../assets/animations';
 import {_auth} from '../../assets/config';
@@ -196,7 +197,10 @@ export default class AuthScreen extends Component {
             </TouchableOpacity>
           </Animatable.View>
         ) : (
-          <Animatable.View delay={500} style={style.btn} animation={slideInUp}>
+          <Animatable.View
+            delay={500}
+            style={style.btn}
+            animation={slideInDown}>
             <TouchableOpacity
               style={style.loginBtn}
               onPress={async () => {
@@ -232,7 +236,10 @@ export default class AuthScreen extends Component {
 class SendCode extends Component {
   render() {
     return (
-      <Animatable.View delay={500} style={style.loginBox} animation={slideInUp}>
+      <Animatable.View
+        delay={500}
+        style={style.loginBox}
+        animation={slideInDown}>
         <ScrollView>
           <Text style={style.title}>
             Enter your phone number to get started
@@ -259,7 +266,10 @@ class SendCode extends Component {
 class VerifyCode extends Component {
   render() {
     return (
-      <Animatable.View delay={500} style={style.loginBox} animation={slideInUp}>
+      <Animatable.View
+        delay={500}
+        style={style.loginBox}
+        animation={slideInDown}>
         <ScrollView>
           <Text style={style.title}>Enter the code we sent you</Text>
           <Text style={style.subTitle}>

@@ -7,12 +7,13 @@
  */
 
 import React, {Component} from 'react';
-import {View} from 'react-native';
+import {StyleSheet, Text, View} from 'react-native';
 import {_auth} from './src/assets/config';
 import AuthScreen from './src/main/app-auth/auth';
-import SplashScreen from './src/main/app-splash/splash';
 import Home from './src/main/app-home/home';
-
+import SplashScreen from './src/main/app-splash/splash';
+import * as Animatable from 'react-native-animatable';
+import {slideInDown, slideInUp, slideOutDown} from './src/assets/animations';
 export default class App extends Component {
   state = {
     authenticated: false,
@@ -23,13 +24,12 @@ export default class App extends Component {
     authenticated: false,
     bypassAuth: false,
     snackBar: false,
-    snackBarMsg: '',
+    snackBarMsg: '939579',
     snackBarLabel: '',
     snackBarOnClick: () => {},
   };
 
   async componentDidMount() {
-    console.log('adkaldkald');
     await _auth.onAuthStateChanged(async (u) => {
       if (this.state.activeSplash === false && this.state.loaded === false) {
         this.setState({activeSplash: true});
@@ -94,7 +94,7 @@ export default class App extends Component {
             openTimedSnack={this.openTimedSnack.bind(this)}
           />
         )}
-        <View
+        <SnackBar
           visible={this.state.snackBar}
           action={{
             label: this.state.snackBarLabel,
@@ -102,10 +102,45 @@ export default class App extends Component {
           }}
           onDismiss={() => {
             return true;
-          }}>
-          {this.state.snackBarMsg}
-        </View>
+          }}
+          msg={this.state.snackBarMsg}
+        />
       </View>
+    );
+  }
+}
+
+const style = StyleSheet.create({
+  snackBar: {
+    position: 'absolute',
+    top: 20,
+    marginLeft: 20,
+    marginRight: 20,
+    borderRadius: 10,
+    backgroundColor: '#118fca',
+    left: 0,
+    right: 0,
+  },
+  snackBarMsg: {
+    alignSelf: 'center',
+    color: '#ffffff',
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+    fontSize: 18,
+    fontFamily: 'Quicksand-Regular',
+  },
+});
+
+class SnackBar extends Component {
+  render() {
+    return this.props.visible === true ? (
+      <Animatable.View animation={slideInUp} style={style.snackBar}>
+        <Text style={style.snackBarMsg}>{this.props.msg}</Text>
+      </Animatable.View>
+    ) : (
+      <View />
     );
   }
 }
